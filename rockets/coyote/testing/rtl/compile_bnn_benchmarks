@@ -1,0 +1,99 @@
+#!/bin/sh
+
+apps=(
+       "bnn_loopback"
+
+       "bnn_random_conv_8"
+       "bnn_random_conv_16"
+       "bnn_random_conv_32"
+
+       "bnn_random_pool_8"
+       "bnn_random_pool_16"
+       "bnn_random_pool_32"
+
+       "bnn_random_dense"
+       "bnn_random_last"
+
+       "bnn_layer_1"
+       "bnn_layer_2"
+       "bnn_layer_3"
+       "bnn_layer_4"
+       "bnn_layer_5"
+       "bnn_layer_6"
+       "bnn_layer_7"
+       "bnn_layer_8"
+
+       "bnn_0"
+       "bnn_1"
+       "bnn_2"
+       "bnn_3"
+       "bnn_4"
+       "bnn_5"
+       "bnn_6"
+       "bnn_7"
+       "bnn_8"
+       "bnn_9"
+
+       "bnn_soft"
+
+       "bnn"
+
+       "bnn_random_conv_8_sneakpath"
+       "bnn_random_conv_16_sneakpath"
+       "bnn_random_conv_32_sneakpath"
+
+       "bnn_random_pool_8_sneakpath"
+       "bnn_random_pool_16_sneakpath"
+       "bnn_random_pool_32_sneakpath"
+
+       "bnn_random_dense_sneakpath"
+       "bnn_random_last_sneakpath"
+
+       "bnn_layer_1_sneakpath"
+       "bnn_layer_2_sneakpath"
+       "bnn_layer_3_sneakpath"
+       "bnn_layer_4_sneakpath"
+       "bnn_layer_5_sneakpath"
+       "bnn_layer_6_sneakpath"
+       "bnn_layer_7_sneakpath"
+       "bnn_layer_8_sneakpath"
+
+       "bnn_0_sneakpath"
+       "bnn_1_sneakpath"
+       "bnn_2_sneakpath"
+       "bnn_3_sneakpath"
+       "bnn_4_sneakpath"
+       "bnn_5_sneakpath"
+       "bnn_6_sneakpath"
+       "bnn_7_sneakpath"
+       "bnn_8_sneakpath"
+       "bnn_9_sneakpath"
+
+       "bnn_sneakpath"
+     )
+
+ucb_directory=../../../../../bsg_riscv/rocket-chip/riscv-tools/riscv-tests/benchmarks
+bsg_directory=../../../../common/benchmark
+
+for app in "${apps[@]}"
+do
+
+  len=$(echo "${app}" | wc -c)
+  filler_sz=$(echo "75 ${len} - p" | dc)
+  echo -ne "Compiling ${app} $(head -c ${filler_sz} /dev/zero | tr '\0' '.') "
+
+  # Object files
+  rm -f ${ucb_directory}/*.o
+  # UCB directory
+  rm -f ${ucb_directory}/${app}.riscv
+  rm -f ${ucb_directory}/${app}.riscv.hex
+  rm -f ${ucb_directory}/${app}.riscv.dump
+  # BSG directory
+  rm -f ${bsg_directory}/${app}.riscv
+  rm -f ${bsg_directory}/${app}.riscv.hex
+  rm -f ${bsg_directory}/${app}.riscv.dump
+
+  # Actual build
+  make ROCKET_NAME=coyote_bnn BENCHMARK=${app} $(readlink -m ../../../../common/benchmark/${app}.riscv.hex) >/dev/null 2>&1 && echo -e '\033[0;32mPASS\033[0m' || echo -e '\033[0;31mFAIL\033[0m'
+
+done

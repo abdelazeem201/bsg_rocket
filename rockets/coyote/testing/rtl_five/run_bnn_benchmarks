@@ -1,0 +1,311 @@
+#!/bin/sh
+
+#=========================================================================
+# Helper functions
+#=========================================================================
+
+check_process() {
+  kill -0 ${1} >/dev/null 2>&1 && echo 1
+}
+
+print_time() {
+  time_dhms=$(echo ${1})
+  seconds=$(( time_dhms % 60 ))
+  time_dhm=$(( time_dhms / 60 ))
+  minutes=$(( time_dhm % 60 ))
+  time_dh=$(( time_dhm / 60 ))
+  hours=$(( time_dh % 24 ))
+  days=$(( time_dh / 24 ))
+
+  echo ${days}"d" ${hours}"h" ${minutes}"m" ${seconds}"s"
+}
+
+set_var() {
+  echo "eval ${1}=\"${2}\""
+}
+
+get_var() {
+  eval 'echo "${'"${1}"'}"'
+}
+
+get_alloc_proc() {
+  target_proc=${1}
+  found_proc=
+  proc_found=1
+  for proc in $(seq 1 ${num_proc}); do
+    is_alloc=$(get_var "proc${proc}_alloc")
+    if [ -n "${is_alloc}" ]; then
+      if [ ${proc_found} -eq ${target_proc} ]; then
+        found_proc="${proc}"
+        break
+      else
+        proc_found=$(( ${proc_found} + 1 ))
+      fi
+    fi
+  done
+
+  echo "${found_proc}"
+}
+
+get_free_proc() {
+  for proc in $(seq 1 ${num_proc}); do
+    proc_id=$(get_var "proc${proc}_id")
+    if [ -z "${proc_id}" ]; then
+      echo "${proc}"
+      break
+    fi
+  done
+}
+
+#      Program                                                            manycore Program
+apps=(
+
+       "bnn_random_conv_8"                ""         ""         ""        ""
+       "bnn_random_conv_16"               ""         ""         ""        ""
+       "bnn_random_conv_32"               ""         ""         ""        ""
+
+       "bnn_random_pool_8"                ""         ""         ""        ""
+       "bnn_random_pool_16"               ""         ""         ""        ""
+       "bnn_random_pool_32"               ""         ""         ""        ""
+
+       "bnn_random_dense"                 ""         ""         ""        ""
+       "bnn_random_last"                  ""         ""         ""        ""
+
+       "bnn_layer_1"                      ""         ""         ""        ""
+       "bnn_layer_2"                      ""         ""         ""        ""
+       "bnn_layer_3"                      ""         ""         ""        ""
+       "bnn_layer_4"                      ""         ""         ""        ""
+       "bnn_layer_5"                      ""         ""         ""        ""
+       "bnn_layer_6"                      ""         ""         ""        ""
+       "bnn_layer_7"                      ""         ""         ""        ""
+       "bnn_layer_8"                      ""         ""         ""        ""
+
+       "bnn_random_conv_8_sneakpath"      ""         ""         ""        "manycore_streambuf_random_conv_8"
+       "bnn_random_conv_16_sneakpath"     ""         ""         ""        "manycore_streambuf_random_conv_16"
+       "bnn_random_conv_32_sneakpath"     ""         ""         ""        "manycore_streambuf_random_conv_32"
+
+       "bnn_random_pool_8_sneakpath"      ""         ""         ""        "manycore_streambuf_random_pool_8"
+       "bnn_random_pool_16_sneakpath"     ""         ""         ""        "manycore_streambuf_random_pool_16"
+       "bnn_random_pool_32_sneakpath"     ""         ""         ""        "manycore_streambuf_random_pool_32"
+
+       "bnn_random_dense_sneakpath"       ""         ""         ""        "manycore_streambuf_random_dense"
+       "bnn_random_last_sneakpath"        ""         ""         ""        "manycore_streambuf_random_last"
+
+       "bnn_layer_1_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_1"
+       "bnn_layer_2_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_2"
+       "bnn_layer_3_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_3"
+       "bnn_layer_4_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_4"
+       "bnn_layer_5_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_5"
+       "bnn_layer_6_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_6"
+       "bnn_layer_7_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_7"
+       "bnn_layer_8_sneakpath"            ""         ""         ""        "manycore_streambuf_layer_8"
+
+       "bnn_0"                            ""         ""         ""        ""
+       "bnn_1"                            ""         ""         ""        ""
+       "bnn_2"                            ""         ""         ""        ""
+       "bnn_3"                            ""         ""         ""        ""
+       "bnn_4"                            ""         ""         ""        ""
+       "bnn_5"                            ""         ""         ""        ""
+       "bnn_6"                            ""         ""         ""        ""
+       "bnn_7"                            ""         ""         ""        ""
+       "bnn_8"                            ""         ""         ""        ""
+       "bnn_9"                            ""         ""         ""        ""
+
+       "bnn_0_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_1_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_2_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_3_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_4_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_5_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_6_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_7_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_8_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+       "bnn_9_sneakpath"                  ""         ""         ""        "manycore_streambuf_single_image"
+
+       "bnn"                              ""         ""         ""        ""
+       "bnn_sneakpath"                    ""         ""         ""        "manycore_streambuf_full_10"
+
+     )
+
+# Parallelism constants
+num_proc=16
+
+temp_directory=$(date +%Y%m%d%H%M%S)
+rm -rf ${temp_directory}
+mkdir -p ${temp_directory}
+
+echo "Storing results in" ${temp_directory}
+
+# Store configuration
+echo "# GIT Status"  >  ${temp_directory}/git_configuration
+git status 2>&1      >> ${temp_directory}/git_configuration
+echo "# GIT Log"     >> ${temp_directory}/git_configuration
+git log 2>&1         >> ${temp_directory}/git_configuration
+#echo "# GIT Patch"   >> ${temp_directory}/git_configuration
+#git log --patch 2>&1 >> ${temp_directory}/git_configuration
+
+# Simulations data
+num_args=5
+num_entries=${#apps[@]}
+num_apps=$(( ${num_entries} / ${num_args} ))
+ROCKET_NAME="coyote_5_manycore_xy_16_31_bnn_v1p5_sneakpath_pll_3_ldo_manycore_xy_2_5"
+
+echo -ne "" > ${temp_directory}/run.log
+
+num_finished=0
+head_idx=0
+
+# Get multi-proccessing metadata ready
+num_proc_alloc=0
+num_proc_avail=${num_proc}
+for proc in $(seq 1 ${num_proc}); do
+  $(set_var "proc${proc}_cmd"   ""  )
+  $(set_var "proc${proc}_alloc" ""  )
+  $(set_var "proc${proc}_id"    ""  )
+  $(set_var "proc${proc}_msg"   ""  )
+  $(set_var "proc${proc}_st"    "0" )
+done
+
+# Build simulator
+build_cmd="make build ROCKET_NAME=${ROCKET_NAME} > ${temp_directory}/build.log 2>&1"
+eval "${build_cmd}"
+
+while [ ${num_finished} -lt ${num_apps} ]; do
+
+  for free_procces_idx in $(seq 1 ${num_proc_avail}); do
+
+    # Guard from overflow
+    if [ ${head_idx} -lt ${num_apps} ]; then
+
+      # Get first free process
+      proc_idx=$(get_free_proc)
+
+      for i in $(seq 1 ${num_args}); do
+        idx=$(( ${num_args} - ${i} ))
+        $(set_var "b${idx}_idx" "$(( ${head_idx} * ${num_args} + ${i} - 1 ))")
+        $(set_var "b${idx}"     '${apps[${b'${idx}'_idx}]}')
+      done
+
+      for i in $(seq 1 ${num_args}); do
+        idx=$(( ${num_args} - ${i} ))
+        tmp=$(get_var "b${idx}")
+        if [ -n "${tmp}" ]; then
+          $(set_var "b${idx}_arg" "\"BENCHMARK_${idx}=${tmp}\"")
+        else
+          $(set_var "b${idx}_arg" "")
+        fi
+      done
+
+      args=""
+      for i in $(seq 1 ${num_args}); do
+        idx=$(( ${num_args} - ${i} ))
+        tmp=$(get_var "b${idx}_arg")
+
+        args+=" ${tmp}"
+      done
+
+      parameters=(
+                   "ROCKET_NAME=${ROCKET_NAME}"
+                   "${args}"
+                 )
+
+      last_idx=$(( ${num_args} - 1 ))
+      app=$(get_var "b${last_idx}")
+      cmd="make ""${parameters[*]}"" run_soft >${temp_directory}/${app}.log 2>&1 &"
+
+      len=$(echo "${app}" | wc -c)
+      filler_sz=$(echo "65 ${len} - p" | dc)
+      msg="Running ${app} $(head -c ${filler_sz} /dev/zero | tr '\0' '.') "
+
+      # Allocate one process and update counters
+      st=$(date +%s)
+      eval "${cmd}"
+      id=$!
+
+      $(set_var "proc${proc_idx}_id"    "${id}" )
+      $(set_var "proc${proc_idx}_alloc" "1"     )
+      $(set_var "proc${proc_idx}_cmd"   "${cmd}")
+      $(set_var "proc${proc_idx}_msg"   "${msg}")
+      $(set_var "proc${proc_idx}_st"    "${st}" )
+
+      # Counters
+      num_proc_avail=$(( ${num_proc_avail} - 1 ))
+      num_proc_alloc=$(( ${num_proc_alloc} + 1 ))
+
+      # Dequeue one job
+      head_idx=$(( ${head_idx} + 1 ))
+
+    fi
+
+  done
+
+  # Check if jobs finished
+  for alloc_proc_num in $(seq 1 ${num_proc_alloc}); do
+
+    # get proccess id
+    proc_idx=$(get_alloc_proc ${alloc_proc_num})
+    proc_id=$(get_var "proc${proc_idx}_id")
+
+    # Check if process finished
+    is_done=$(check_process ${proc_id})
+    if [ -z "${is_done}" ]; then
+
+      # Process finished!
+
+      # Record end time
+      proc_et=$(date +%s)
+
+      # Get all proccess variables
+      proc_id=$(get_var "proc${proc_idx}_id")
+      proc_cmd=$(get_var "proc${proc_idx}_cmd")
+      proc_msg=$(get_var "proc${proc_idx}_msg")
+      proc_st=$(get_var "proc${proc_idx}_st")
+
+      # Execution time
+      exec_time=$(( ${proc_et} - ${proc_st} ))
+
+      # Print messages
+      echo -ne "${proc_msg}"
+      echo -ne "${proc_msg}" >> ${temp_directory}/run.log
+
+      # Get status
+      if wait "${proc_id}" >/dev/null 2>&1; then
+        echo -ne '\033[0;32mPASS\033[0m'
+        echo -ne           'PASS'        >> ${temp_directory}/run.log
+      else
+        echo -ne '\033[0;31mFAIL\033[0m'
+        echo -ne           'FAIL'        >> ${temp_directory}/run.log
+      fi
+
+      echo -ne " (time:" $(print_time ${exec_time})")"
+      echo -ne "\n"
+
+      echo -ne " (time:" $(print_time ${exec_time})")" >> ${temp_directory}/run.log
+      echo -ne "\n"                                    >> ${temp_directory}/run.log
+
+      # Book keeping
+      $(set_var "proc${proc_idx}_id"  "")
+
+      # Update counters
+      num_proc_avail=$(( ${num_proc_avail} + 1 ))
+      num_proc_alloc=$(( ${num_proc_alloc} - 1 ))
+
+      # Finished one process
+      num_finished=$(( ${num_finished} + 1 ))
+
+    fi
+  done
+
+  # Clear unused proccesses
+  for proc_idx in $(seq 1 ${num_proc}); do
+
+    proc_id=$(get_var "proc${proc_idx}_id")
+    proc_alloc=$(get_var "proc${proc_idx}_alloc")
+
+    if [ -z "${proc_id}" ] && [ -n "${proc_alloc}" ]; then
+      $(set_var "proc${proc_idx}_alloc" "")
+    fi
+
+  done
+  
+done

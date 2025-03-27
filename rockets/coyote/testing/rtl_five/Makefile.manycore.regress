@@ -1,0 +1,40 @@
+#####################################################
+# This file will run the regression test of bsg_manycore
+test_case_list  =bsg_rocket_manycore_loopback
+#test_case_list +=bsg_rocket_manycore_2tile_loopback
+##test_case_list +=bsg_rocket_manycore_chained_core
+#test_case_list +=bsg_rocket_manycore_mc_congestion_load
+#test_case_list +=bsg_rocket_manycore_mc_load
+#test_case_list +=bsg_rocket_manycore_remote_load
+#test_case_list +=bsg_rocket_manycore_rocc_basher
+#test_case_list +=bsg_rocket_manycore_token_queue
+
+rocket_num_list =0
+rocket_num_list +=1
+rocket_num_list +=3
+rocket_num_list +=4
+
+
+bmark_path=../../../../common/benchmark
+
+all: main.regress_test
+##############################################
+#  regression test
+%.regress_test:
+	for testcase in $(test_case_list) ; do 	\
+		for num in $(rocket_num_list); do	\
+			echo "=====================================================================";	\
+			echo "running testcase [ $$testcase ] on rocket $$num                ";		\
+			make clean_$$testcase BENCHMARK_0=$$testcase &> /dev/null;     			\
+			if [ $$num -gt 1 ]; then							\
+    				make BENCHMARK_0=$$testcase  bsg_manycore_rocket_index=$$(expr $$num - 1 ) $$(readlink -m ${bmark_path}/$$testcase.riscv.hex)   &> /dev/null  ;\
+			else										\
+    				make BENCHMARK_0=$$testcase  bsg_manycore_rocket_index=$$num  $$(readlink -m ${bmark_path}/$$testcase.riscv.hex)   &> /dev/null  ;	\
+			fi;										\
+			make run BENCHMARK_$$num=$$testcase &> run.log;	    				\
+			grep "==>\|PASS"  run.log;            						\
+			make clean  &>/dev/null;     		   					\
+			make clean_$$testcase BENCHMARK_0=$$testcase    &> /dev/null;			\
+		done;	\
+	done;
+#			rm -rf run.log;		      							\

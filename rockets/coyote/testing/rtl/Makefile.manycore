@@ -1,0 +1,91 @@
+################################################################################
+#This file should be include in the main Makefile
+
+manycore_bmark_dir = $(abspath ../../../../../bsg_manycore/software/spmd)
+
+
+##################################################################################
+#Check if this is a manycore test case
+ifneq (,$(findstring manycore,$(BENCHMARK)))
+	MANYCORE_DEP=	$(benchmark_dir)/$(BENCHMARK)/manycore.vec.c 	\
+					$(benchmark_dir)/$(BENCHMARK)/manycore.riscv64 	\
+					$(benchmark_dir)/$(BENCHMARK)/manycore.cfg.h 	\
+				 	$(riscv_bmark_dir)/bsg_rocket_manycore_common
+else
+	MANYCORE_DEP=
+endif
+
+##################################################################################
+#Special target for manycore compilation
+MANYCORE_OPT="-DROCKET_MANYCORE -Dbsg_active_rocc_index=$(bsg_active_rocc_index) \
+			  -DBSG_TOKEN_QUEUE_SHORT -O2"
+MANYCORE_PARA="bsg_tiles_X=$(bsg_tiles_X)" "bsg_tiles_Y=$(bsg_tiles_Y)"
+
+$(manycore_bmark_dir)/$(BENCHMARK):
+	cp -R $(benchmark_dir)/$(BENCHMARK)/manycore $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.vec.c: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.vec.c RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.vec.c $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.riscv64: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.riscv64 RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.riscv64 $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.cfg.h: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.cfg.h RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.cfg.h $@
+
+$(riscv_bmark_dir)/bsg_rocket_manycore_common:
+	cp -R $(benchmark_dir)/bsg_rocket_manycore_common $@
+
+ifneq (,$(findstring manycore,$(BENCHMARK)))
+#Dependency for riscv_benchmark
+$(riscv_bmark_dir)/$(BENCHMARK):
+	#cp -r $(benchmark_dir)/$(BENCHMARK) $@
+	ln -fs $(benchmark_dir)/$(BENCHMARK) $@
+	ln -fs $(manycore_bmark_dir)/../bsg_manycore_lib $@/bsg_manycore_lib
+else
+$(riscv_bmark_dir)/$(BENCHMARK):
+	#cp -r $(benchmark_dir)/$(BENCHMARK) $@
+	ln -fs $(benchmark_dir)/$(BENCHMARK) $@
+endif
+##################################################################################
+##### Regression test for manycore ######
+MC_NAMES	=loopback token_queue chained_core streambuf
+
+mc_regress:
+	@for bmarks in $(MC_NAMES); do \
+		num=`expr $(bsg_rocc_num) - 1`  								; 		\
+		for i in `seq 0  $$num`;  do 							 				\
+			echo "=============================================" 	;			\
+			echo "==   $$bmarks (active fsb node=$$i ) "  	    	;			\
+	    	make clean_bsg_rocket_manycore_$$bmarks 							\
+             			BENCHMARK=bsg_rocket_manycore_$$bmarks    				\
+             		   	> /dev/null  2>&1                        ; 				\
+	    	make run_debug BENCHMARK=bsg_rocket_manycore_$$bmarks    			\
+                       ROCKET_NAME=coyote_manycore               				\
+					   bsg_active_fsb_index=$$i									\
+                       > run.log  2>&1                        ;					\
+			grep '==>' run.log ;												\
+			rm   run.log ;														\
+		done																  	\
+	done
+
+mc_streambuf:
+	make clean_bsg_rocket_manycore_streambuf 							\
+            	BENCHMARK=bsg_rocket_manycore_streambuf    				\
+             	> /dev/null  2>&1                        ; 				
+	make run_debug BENCHMARK=bsg_rocket_manycore_streambuf    			\
+               ROCKET_NAME=coyote_manycore_streambuf               	    \
+               2>&1                       ;
+streambuf_check:
+	grep BNN_DATA  out/bsg_rocket_manycore_streambuf.riscv.out | awk '{print $$3}' | sed 's/^0\+//' | sed 's/$$/,/' | sed '$$d' > out/out_fifo_data.txt
+	diff out/out_fifo_data.txt  ../../../../common/benchmark/bsg_rocket_manycore_streambuf/layer1_wts.txt
+
+mc_clean:
+	@for bmarks in $(MC_NAMES); do \
+	    make clean_bsg_rocket_manycore_$$bmarks 		\
+             BENCHMARK=bsg_rocket_manycore_$$bmarks    	\
+             > /dev/null  2>&1                        ; \
+	done

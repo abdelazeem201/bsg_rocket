@@ -1,0 +1,150 @@
+diff --git a/rockets/coyote/testing/apr_ff_five/Makefile b/rockets/coyote/testing/apr_ff_five/Makefile
+index 7c4fb03..adb7972 100644
+--- a/rockets/coyote/testing/apr_ff_five/Makefile
++++ b/rockets/coyote/testing/apr_ff_five/Makefile
+@@ -1,9 +1,5 @@
+ include ../../../../../cad/common/mk/cadenv.mk
+ 
+-export ARM_STD_CELLS_V = /gro/cad/arm16/sc7.5_svt/verilog/sc7p5mcpp96p_cln16fcll001_base_svt_c16.v
+-export ARM_IO_CELLS_V  = /gro/cad/arm16/io_dr_1.8v/verilog/io_gppr_cln16fcll001_t18_mv08_fs18_rvt_dr.v
+-export ARM_PMK_CELLS_V = /gro/cad/arm16/sc7.5_svt_pmk_c18/verilog/sc7p5mcpp96p_cln16fcll001_pmk_svt_c18.v
+-
+ MODEL := Top
+ CONFIG := Bsg1AccelVLSIConfig
+ TB := test_five
+@@ -96,12 +92,15 @@ export BSG_MANYCORE_DIR = $(abspath ../../../../../bsg_manycore)
+ export BSG_DESIGNS_TARGET = $(BSG_PINOUT)_$(ROCKET_NAME)
+ export BSG_DESIGNS_TARGET_DIR = $(BSG_DESIGNS_DIR)/toplevels/$(BSG_DESIGNS_TARGET)
+ 
+-export CHIP_DIR = $(abspath ../../../../../mpw2_chip)
+-export MEM_DIR = $(abspath ../../../../../memory)
+- 
++export GLFILES_DIR = $(abspath ../../../../../celerity_660/glfiles)
++
+ export BSG_DESIGNS_HARD_TARGET = tsmc_16
+ 
+-export ALL_MEM_V = $(shell find $(MEM_DIR) -name '*.v')
++export ARM_STD_CELLS_V = $(GLFILES_DIR)/arm-cells/sc7p5mcpp96p_cln16fcll001_base_svt_c16.v
++export ARM_IO_CELLS_V  = $(GLFILES_DIR)/arm-cells/io_gppr_cln16fcll001_t18_mv08_fs18_rvt_dr.v
++export ARM_PMK_CELLS_V = $(GLFILES_DIR)/arm-cells/sc7p5mcpp96p_cln16fcll001_pmk_svt_c18.v
++
++export ALL_MEM_V = $(shell find $(GLFILES_DIR)/arm-cells -name '*.v')
+ 
+ CC = /opt/rh/devtoolset-2/root/usr/bin/gcc
+ CXX = /opt/rh/devtoolset-2/root/usr/bin/g++
+-diff --git a/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl b/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
+-index 52c9570..3b7282e 100644
+---- a/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
+-+++ b/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
+-@@ -22,8 +22,8 @@ bsg_create_library $::env(PDK_LIB_NAME) \
+- 
+- # manycore filelist
+- set manycore_files [join "
+--  $::env(CHIP_DIR)/blocks/manycore_hierarchical/export/bsg_manycore_tile.vcs.v
+--  $::env(CHIP_DIR)/blocks/manycore_hierarchical/export/bsg_manycore.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_manycore_tile.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_manycore.vcs.v
+- "]
+- 
+- bsg_create_filelist $::env(MANYCORE_FILELIST) \
+-@@ -36,8 +36,8 @@ bsg_create_library $::env(MANYCORE_LIB_NAME) \
+- 
+- # dcdc_manycore filelist
+- set dcdc_manycore_files [join "
+--  $::env(CHIP_DIR)/blocks/dcdc_manycore/export/bsg_manycore_tile_1024_1_1024_1_3_32_20_0_00000000_00000000_0.vcs.v
+--  $::env(CHIP_DIR)/blocks/dcdc_manycore/export/dcdc_manycore.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_manycore_tile_1024_1_1024_1_3_32_20_0_00000000_00000000_0.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/dcdc_manycore.vcs.v
+- "]
+- 
+- bsg_create_filelist $::env(DCDC_MANYCORE_FILELIST) \
+-@@ -50,7 +50,7 @@ bsg_create_library $::env(DCDC_MANYCORE_LIB_NAME) \
+- 
+- # coyote filelist
+- set coyote_files [join "
+--  $::env(CHIP_DIR)/blocks/coyote_node/export/bsg_rocket_node_client_rocc.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_rocket_node_client_rocc.vcs.v
+- "]
+- 
+- bsg_create_filelist $::env(COYOTE_FILELIST) \
+-@@ -63,7 +63,7 @@ bsg_create_library $::env(COYOTE_LIB_NAME) \
+- 
+- # bnn filelist
+- set bnn_files [join "
+--  $::env(CHIP_DIR)/blocks/bnn/export/bsg_rocket_accelerator_bnn.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_rocket_accelerator_bnn.vcs.v
+- "]
+- 
+- bsg_create_filelist $::env(BNN_FILELIST) \
+-@@ -76,9 +76,10 @@ bsg_create_library $::env(BNN_LIB_NAME) \
+- 
+- # chip filelist
+- set bsg_chip_files [join "
+--  $::env(CHIP_DIR)/results/innovus/bsg_chip.vcs.v
+--  $::env(CHIP_DIR)/../bsg_designs/toplevels/bsg_three_certus_soc/v/analog/pll.v
+--  $::env(CHIP_DIR)/../bsg_designs/toplevels/bsg_three_certus_soc/v/analog/dc_dc_ldo.v
+-+  $::env(GLFILES_DIR)/netlists/bsg_chip.vcs.v
+-+  $::env(GLFILES_DIR)/netlists/pll.vcs.v
+-+  $::env(GLFILES_DIR)/blackboxes/dummy-dc-dc-ldo.v
+-+  $::env(GLFILES_DIR)/blackboxes/dummy-corner-cell.v
+- "]
+- 
+- bsg_create_filelist $::env(BSG_CHIP_FILELIST) \
+diff --git a/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl b/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
+index 52c9570..3b7282e 100644
+--- a/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
++++ b/rockets/coyote/testing/apr_ff_five/cfg_vcs.tcl
+@@ -22,8 +22,8 @@ bsg_create_library $::env(PDK_LIB_NAME) \
+ 
+ # manycore filelist
+ set manycore_files [join "
+-  $::env(CHIP_DIR)/blocks/manycore_hierarchical/export/bsg_manycore_tile.vcs.v
+-  $::env(CHIP_DIR)/blocks/manycore_hierarchical/export/bsg_manycore.vcs.v
++  $::env(GLFILES_DIR)/netlists/bsg_manycore_tile.vcs.v
++  $::env(GLFILES_DIR)/netlists/bsg_manycore.vcs.v
+ "]
+ 
+ bsg_create_filelist $::env(MANYCORE_FILELIST) \
+@@ -36,8 +36,8 @@ bsg_create_library $::env(MANYCORE_LIB_NAME) \
+ 
+ # dcdc_manycore filelist
+ set dcdc_manycore_files [join "
+-  $::env(CHIP_DIR)/blocks/dcdc_manycore/export/bsg_manycore_tile_1024_1_1024_1_3_32_20_0_00000000_00000000_0.vcs.v
+-  $::env(CHIP_DIR)/blocks/dcdc_manycore/export/dcdc_manycore.vcs.v
++  $::env(GLFILES_DIR)/netlists/bsg_manycore_tile_1024_1_1024_1_3_32_20_0_00000000_00000000_0.vcs.v
++  $::env(GLFILES_DIR)/netlists/dcdc_manycore.vcs.v
+ "]
+ 
+ bsg_create_filelist $::env(DCDC_MANYCORE_FILELIST) \
+@@ -50,7 +50,7 @@ bsg_create_library $::env(DCDC_MANYCORE_LIB_NAME) \
+ 
+ # coyote filelist
+ set coyote_files [join "
+-  $::env(CHIP_DIR)/blocks/coyote_node/export/bsg_rocket_node_client_rocc.vcs.v
++  $::env(GLFILES_DIR)/netlists/bsg_rocket_node_client_rocc.vcs.v
+ "]
+ 
+ bsg_create_filelist $::env(COYOTE_FILELIST) \
+@@ -63,7 +63,7 @@ bsg_create_library $::env(COYOTE_LIB_NAME) \
+ 
+ # bnn filelist
+ set bnn_files [join "
+-  $::env(CHIP_DIR)/blocks/bnn/export/bsg_rocket_accelerator_bnn.vcs.v
++  $::env(GLFILES_DIR)/netlists/bsg_rocket_accelerator_bnn.vcs.v
+ "]
+ 
+ bsg_create_filelist $::env(BNN_FILELIST) \
+@@ -76,9 +76,10 @@ bsg_create_library $::env(BNN_LIB_NAME) \
+ 
+ # chip filelist
+ set bsg_chip_files [join "
+-  $::env(CHIP_DIR)/results/innovus/bsg_chip.vcs.v
+-  $::env(CHIP_DIR)/../bsg_designs/toplevels/bsg_three_certus_soc/v/analog/pll.v
+-  $::env(CHIP_DIR)/../bsg_designs/toplevels/bsg_three_certus_soc/v/analog/dc_dc_ldo.v
++  $::env(GLFILES_DIR)/netlists/bsg_chip.vcs.v
++  $::env(GLFILES_DIR)/netlists/pll.vcs.v
++  $::env(GLFILES_DIR)/blackboxes/dummy-dc-dc-ldo.v
++  $::env(GLFILES_DIR)/blackboxes/dummy-corner-cell.v
+ "]
+ 
+ bsg_create_filelist $::env(BSG_CHIP_FILELIST) \

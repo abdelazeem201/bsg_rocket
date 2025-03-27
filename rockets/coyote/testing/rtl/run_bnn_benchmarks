@@ -1,0 +1,113 @@
+#!/bin/sh
+
+apps=(
+       "bnn_random_last_sneakpath"        "sp_wts_random.hex"     "10"
+       "bnn_random_conv_8"                ""                      ""
+       "bnn_random_conv_16"               ""                      ""
+       "bnn_random_conv_32"               ""                      ""
+
+       "bnn_random_pool_8"                ""                      ""
+       "bnn_random_pool_16"               ""                      ""
+       "bnn_random_pool_32"               ""                      ""
+
+       "bnn_random_dense"                 ""                      ""
+       "bnn_random_last"                  ""                      ""
+
+       "bnn_layer_1"                      ""                      ""
+       "bnn_layer_2"                      ""                      ""
+       "bnn_layer_3"                      ""                      ""
+       "bnn_layer_4"                      ""                      ""
+       "bnn_layer_5"                      ""                      ""
+       "bnn_layer_6"                      ""                      ""
+       "bnn_layer_7"                      ""                      ""
+       "bnn_layer_8"                      ""                      ""
+
+       "bnn_random_conv_8_sneakpath"      "sp_wts_random.hex"     "10"
+       "bnn_random_conv_16_sneakpath"     "sp_wts_random.hex"     "10"
+       "bnn_random_conv_32_sneakpath"     "sp_wts_random.hex"     "10"
+
+       "bnn_random_pool_8_sneakpath"      "sp_wts_random.hex"     "20"
+       "bnn_random_pool_16_sneakpath"     "sp_wts_random.hex"     "20"
+       "bnn_random_pool_32_sneakpath"     "sp_wts_random.hex"     "20"
+
+       "bnn_random_dense_sneakpath"       "sp_wts_random.hex"     "20"
+       "bnn_random_last_sneakpath"        "sp_wts_random.hex"     "10"
+
+       "bnn_layer_1_sneakpath"            "sp_wts_layer1.hex"     ""
+       "bnn_layer_2_sneakpath"            "sp_wts_layer2.hex"     ""
+       "bnn_layer_3_sneakpath"            "sp_wts_layer3.hex"     ""
+       "bnn_layer_4_sneakpath"            "sp_wts_layer4.hex"     ""
+       "bnn_layer_5_sneakpath"            "sp_wts_layer5.hex"     ""
+       "bnn_layer_6_sneakpath"            "sp_wts_layer6.hex"     ""
+       "bnn_layer_7_sneakpath"            "sp_wts_layer7.hex"     ""
+       "bnn_layer_8_sneakpath"            "sp_wts_layer8.hex"     ""
+
+       "bnn"                              ""                      ""
+
+     )
+     #  "bnn_layer_9"                      ""                      ""
+     #  "bnn_layer_9_sneakpath"            "sp_wts_layer9.hex"
+     #
+     #  "bnn_sneakpath"                    ""
+     #)
+
+temp_directory=$(date +%Y%m%d%H%M%S)
+rm -rf ${temp_directory}
+mkdir -p ${temp_directory}
+
+echo -e "\nStoring results in" ${temp_directory} "\n"
+
+# Store configuration
+echo "# GIT Status"  >  ${temp_directory}/git_configuration
+git status 2>&1      >> ${temp_directory}/git_configuration
+#echo "# GIT Log"     >> ${temp_directory}/git_configuration
+#git log 2>&1         >> ${temp_directory}/git_configuration
+#echo "# GIT Patch"   >> ${temp_directory}/git_configuration
+#git log --patch 2>&1 >> ${temp_directory}/git_configuration
+
+num_entries=${#apps[@]}
+num_apps=$(( ${num_entries} / 3 ))
+apps_limit=$(( ${num_apps} - 1 ))
+
+for idx in `seq 0 ${apps_limit}`; do
+
+  app_idx=$(( ${idx} * 3 + 0 ))
+  vec_idx=$(( ${idx} * 3 + 1 ))
+  off_idx=$(( ${idx} * 3 + 2 ))
+
+  app=${apps[${app_idx}]}
+  vec=${apps[${vec_idx}]}
+  off=${apps[${off_idx}]}
+
+  len=$(echo "${app}" | wc -c)
+  filler_sz=$(echo "75 ${len} - p" | dc)
+  echo -ne "Running ${app} $(head -c ${filler_sz} /dev/zero | tr '\0' '.') "
+
+  app_arg=${app}
+  vec_arg=
+  if [ -n "${vec}" ]; then
+    vec_arg=mcq_messages/${vec}
+  fi
+  off_arg=
+  if [ -n "${off}" ]; then
+    off_arg=${off}
+  fi
+  cycles=500000000
+
+  parameters=(
+               "ROCKET_NAME=coyote_bnn_sneakpath"
+               "BENCHMARK=${app_arg}"
+               "test_vector=${vec_arg}"
+               "test_vector_offset=${off_arg}"
+               "TIMEOUT_CYCLES=${cycles}"
+             )
+
+  cmd="make ""${parameters[*]}"" run >${temp_directory}/${app}${formatted_arg}.log 2>&1"
+
+  # Actual build
+  if eval "${cmd}"; then
+    echo -e '\033[0;32mPASS\033[0m'
+  else
+    echo -e '\033[0;31mFAIL\033[0m'
+  fi
+done

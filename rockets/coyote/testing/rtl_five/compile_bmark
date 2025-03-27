@@ -1,0 +1,12 @@
+#!/bin/sh
+
+bmark='manycore_streambuf_random_last'
+
+if [ $# -ge 1 ]; then
+
+  bmark=$1
+
+  make BENCHMARK_0=${bmark} clean_${bmark}
+  make BENCHMARK_0=${bmark} $(readlink -m ../../../../common/benchmark/${bmark}.riscv.hex)
+
+fi

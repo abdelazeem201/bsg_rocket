@@ -1,0 +1,45 @@
+diff --git a/rockets/coyote/testing/rtl_five/Makefile b/rockets/coyote/testing/rtl_five/Makefile
+index 3923524..541c6cc 100644
+--- a/rockets/coyote/testing/rtl_five/Makefile
++++ b/rockets/coyote/testing/rtl_five/Makefile
+@@ -1,4 +1,5 @@
+-include ../../../../../cad/common/mk/cadenv.mk
++include ../../../../../craft_cad_flow/common/umich_cadenv.mk
++INSTALLS_DIR=/n/trenton/z/dreslinskilab/certus/certus_common/installs
+ 
+ MODEL := Top
+ CONFIG := Bsg1AccelVLSIConfig
+@@ -80,7 +81,8 @@ export BSG_PINOUT ?= bsg_three
+ export BSG_PINOUT_FOUNDRY=tsmc_16
+ export BSG_PADMAPPING=one
+ 
+-export PATH:=$(RISCV)/bin:/opt/rh/devtoolset-2/root/usr/bin:$(PATH)
++export PATH:=$(RISCV)/bin:$(INSTALLS_DIR)/bin:$(PATH)
++export LD_LIBRARY_PATH = $(INSTALLS_DIR)/lib64:$(INSTALLS_DIR)/lib:$(RISCV)/lib64:$(RISCV)/lib
+ export BSG_OUT_DIR = $(abspath ./out)
+ export BSG_COMMON_DIR = $(abspath ../../../../common)
+ export BSG_RISCV_DIR = $(abspath ../../../../../bsg_riscv)
+@@ -95,8 +97,8 @@ export BSG_DESIGNS_TARGET_DIR = $(BSG_DESIGNS_DIR)/toplevels/$(BSG_DESIGNS_TARGE
+ #export BSG_DESIGNS_TARGET_DIR = $(BSG_DESIGNS_DIR)/toplevels/bsg_two_bison_manycore
+ 
+ 
+-CC = /opt/rh/devtoolset-2/root/usr/bin/gcc
+-CXX = /opt/rh/devtoolset-2/root/usr/bin/g++
++CC = $(INSTALLS_DIR)/bin/gcc
++CXX = $(INSTALLS_DIR)/bin/g++
+ CXXFLAGS := -O1
+ 
+ generated_dir = $(abspath ../../generated-src)
+@@ -266,10 +268,10 @@ simv = $(BSG_OUT_DIR)/simv-$(MODEL)-$(CONFIG)
+ simv_debug = $(BSG_OUT_DIR)/simv-$(MODEL)-$(CONFIG)
+ 
+ $(simv): $(VCS_DEP)
+-	$(VCS_BIN)/vcs $(VCS_OPT) -o $@
++	$(VCS) $(VCS_OPT) -o $@
+ 
+ $(simv_debug): $(VCS_DEP)
+-	$(VCS_BIN)/vcs $(VCS_OPT) +define+DEBUG -debug_pp -o $@
++	$(VCS) $(VCS_OPT) +define+DEBUG -debug_pp -o $@
+ 
+ bsg_riscv_dir=$(abspath ../../../../../bsg_riscv)
+ ucb_asm_bmark_dir=$(abspath $(bsg_riscv_dir)/riscv-install/riscv64-unknown-elf/share/riscv-tests/isa)

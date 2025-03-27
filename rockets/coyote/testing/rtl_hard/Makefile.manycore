@@ -1,0 +1,72 @@
+################################################################################
+#This file should be include in the main Makefile
+#Check if this is a manycore test case
+
+manycore_bmark_dir = $(abspath ../../../../../bsg_manycore/software/spmd)
+##################################################################################
+#      some parameters get from the manycore program
+manycore_cfg_file= $(benchmark_dir)/$(BENCHMARK)/manycore.cfg.h
+manycore_pkg_file= $(BSG_DESIGNS_TARGET_DIR)/v/bsg_manycore_pkg.v
+
+
+ifneq (,$(findstring manycore,$(BENCHMARK)))
+	MANYCORE_DEP=	$(benchmark_dir)/$(BENCHMARK)/manycore.vec.c 	\
+					$(benchmark_dir)/$(BENCHMARK)/manycore.riscv64 	\
+					$(benchmark_dir)/$(BENCHMARK)/manycore.cfg.h 	\
+				 	$(riscv_bmark_dir)/bsg_rocket_manycore_common
+else
+	MANYCORE_DEP=
+endif
+
+##################################################################################
+#Special target for manycore compilation
+MANYCORE_OPT="-DROCKET_MANYCORE -O2"
+
+$(manycore_bmark_dir)/$(BENCHMARK):
+	cp -R $(benchmark_dir)/$(BENCHMARK)/manycore $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.vec.c: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.vec.c RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT)
+	cp $</main.vec.c $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.riscv64: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.riscv64 RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT)
+	cp $</main.riscv64 $@
+
+$(benchmark_dir)/$(BENCHMARK)/manycore.cfg.h: $(manycore_bmark_dir)/$(BENCHMARK)
+	make -C $< main.cfg.h RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT)
+	cp $</main.cfg.h $@
+
+$(riscv_bmark_dir)/bsg_rocket_manycore_common:
+	cp -R $(benchmark_dir)/bsg_rocket_manycore_common $@
+
+#Dependency for riscv_benchmark
+$(riscv_bmark_dir)/$(BENCHMARK): $(MANYCORE_DEP)
+	@echo "============ MANYCORE Configuation ============================="
+	@echo  bsg_tiles_X=$(shell sed -n "s/^.*bsg_tiles_X[[:blank:]]\+\([[:digit:]]\+\)/\1/p" $(manycore_cfg_file))
+	@echo  bsg_tiles_Y=$(shell sed -n "s/^.*bsg_tiles_Y[[:blank:]]\+\([[:digit:]]\+\)/\1/p" $(manycore_cfg_file))
+	@echo  pkg_tiles_X=$(shell sed -n "s/^.*num_tiles_x_gp[[:blank:]]\+=[[:blank:]]\+\([[:digit:]]\+\)/\1/p" $(manycore_pkg_file) )
+	@echo  pkg_tiles_Y=$(shell sed -n "s/^.*num_tiles_y_gp[[:blank:]]\+=[[:blank:]]\+\([[:digit:]]\+\)/\1/p" $(manycore_pkg_file) )
+	@echo "============ MANYCORE Configuation ============================="
+	cp -r $(benchmark_dir)/$(BENCHMARK) $@
+
+##################################################################################
+##### Regression test for manycore ######
+MC_NAMES	=loopback token_queue chained_core
+
+mc_regress:
+	@for bmarks in $(MC_NAMES); do \
+		echo "=============================================" 	;\
+		echo "==   $$bmarks "    						 		;\
+	    make run_debug BENCHMARK=bsg_rocket_manycore_$$bmarks    \
+                       ROCKET_NAME=coyote_manycore               \
+                       > /dev/null  2>&1                        ;\
+		grep '==>' $(BSG_OUT_DIR)/bsg_rocket_manycore_$$bmarks.riscv.out ;\
+	done
+
+mc_clean:
+	@for bmarks in $(MC_NAMES); do \
+	    make clean_bsg_rocket_manycore_$$bmarks 		\
+             BENCHMARK=bsg_rocket_manycore_$$bmarks    	\
+             > /dev/null  2>&1                        ; \
+	done

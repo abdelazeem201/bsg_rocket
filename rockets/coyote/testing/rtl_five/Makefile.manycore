@@ -1,0 +1,149 @@
+################################################################################
+#This file should be include in the main Makefile
+manycore_bmark_dir = $(abspath ../../../../../bsg_manycore/software/spmd)
+riscv_bin_dir = $(abspath ../../../../../bsg_riscv/riscv-install/bin/)
+riscv_gcc_bin = $(riscv_bin_dir)/riscv64-unknown-elf-gcc
+riscv_elf2hex_bin = $(riscv_bin_dir)/elf2hex
+
+##################################################################################
+#Check if this is a manycore test case
+ifneq (,$(findstring manycore,$(BENCHMARK_0)))
+	MANYCORE_DEP=	$(benchmark_dir)/$(BENCHMARK_0)/manycore.vec.c 	\
+					$(benchmark_dir)/$(BENCHMARK_0)/manycore.riscv64 	\
+					$(benchmark_dir)/$(BENCHMARK_0)/manycore.cfg.h 	\
+				 	$(riscv_bmark_dir)/bsg_rocket_manycore_common
+else
+	MANYCORE_DEP=
+endif
+
+##################################################################################
+#Special target for manycore compilation
+MANYCORE_OPT="-DROCKET_MANYCORE -Dbsg_active_rocc_index=$(bsg_active_rocc_index) \
+			  -DBSG_TOKEN_QUEUE_SHORT -O2"
+MANYCORE_PARA="bsg_tiles_X=$(bsg_tiles_X)" "bsg_tiles_Y=$(bsg_tiles_Y)"
+
+$(manycore_bmark_dir)/$(BENCHMARK_0):
+	cp -R $(benchmark_dir)/$(BENCHMARK_0)/manycore/ $@
+
+$(benchmark_dir)/$(BENCHMARK_0)/manycore.vec.c: $(manycore_bmark_dir)/$(BENCHMARK_0)
+	make -C $< main.vec.c RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.vec.c $@
+
+$(benchmark_dir)/$(BENCHMARK_0)/manycore.riscv64: $(manycore_bmark_dir)/$(BENCHMARK_0)
+	make -C $< main.riscv64 RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.riscv64 $@
+
+$(benchmark_dir)/$(BENCHMARK_0)/manycore.cfg.h: $(manycore_bmark_dir)/$(BENCHMARK_0)
+	make -C $< main.cfg.h RISCV_GCC_EXTRA_OPTS=$(MANYCORE_OPT) $(MANYCORE_PARA)
+	cp $</main.cfg.h $@
+
+$(riscv_bmark_dir)/bsg_rocket_manycore_common:
+	cp -R $(benchmark_dir)/bsg_rocket_manycore_common $@
+
+
+ifneq (,$(findstring manycore,$(BENCHMARK_0)))
+ifeq  (,$(findstring manycore_2tile, $(BENCHMARK_0)))
+#Dependency for riscv_benchmark
+$(riscv_bmark_dir)/$(BENCHMARK_0): $(MANYCORE_DEP)
+	ln -fs $(benchmark_dir)/$(BENCHMARK_0)/ $@
+	ln -fs $(manycore_bmark_dir)/../bsg_manycore_lib/ $@/bsg_manycore_lib
+
+$(benchmark_dir)/$(BENCHMARK_0).riscv.hex: | $(riscv_bmark_dir)/$(BENCHMARK_0)
+	# Clean *.o files
+	rm -f $(riscv_bmark_dir)/*.o
+	make -C $(riscv_bmark_dir) bmarks=$(BENCHMARK_0) 									\
+		bmarks_defs="-DPREALLOCATE=0 -DHOST_DEBUG=0  								    \
+					 -DOUT_FIFO_DIST=$(OUT_FIFO_DIST)									\
+					 -DIMEM_INIT_LEN=$$(readelf -l $(benchmark_dir)/$(BENCHMARK_0)/manycore.riscv64 \
+                                     | awk '/LOAD/{getline;++c; if( c==1) print $$2}') 				\
+					 -DDMEM_INIT_LEN=$$(readelf -l $(benchmark_dir)/$(BENCHMARK_0)/manycore.riscv64 \
+                                     | awk '/LOAD/{getline;++c; if( c==2) print $$2}')"
+	cp $|.riscv.hex $@
+endif
+## The general RISCV benchmarks
+else
+$(riscv_bmark_dir)/$(BENCHMARK_0): $(MANYCORE_DEP)
+	ln -fs $(benchmark_dir)/$(BENCHMARK_0) $@
+
+$(benchmark_dir)/$(BENCHMARK_0).riscv.hex: | $(riscv_bmark_dir)/$(BENCHMARK_0)
+	# Clean *.o files
+	rm -f $(riscv_bmark_dir)/*.o
+	rm -f $(riscv_bmark_dir)/$(BENCHMARK_0).*
+	make -C $(riscv_bmark_dir) bmarks=$(BENCHMARK_0) bmarks_defs="-DPREALLOCATE=0 -DHOST_DEBUG=0"
+	cp $|.riscv.hex $@
+endif
+
+$(riscv_bmark_dir)/bsg_dcdc:
+	cp -R $(benchmark_dir)/bsg_dcdc $@
+
+$(benchmark_dir)/bsg_dcdc.riscv.hex: | $(riscv_bmark_dir)/bsg_dcdc
+	# Clean *.o files
+	rm -f $(riscv_bmark_dir)/*.o
+	make -C $(riscv_bmark_dir) bmarks=bsg_dcdc bmarks_defs="-DPREALLOCATE=0 -DHOST_DEBUG=0"
+	cp $|.riscv.hex $@
+
+$(benchmark_dir)/bsg_rocket_loopback.riscv.hex: $(benchmark_dir)/bsg_rocket_loopback/bsg_rocket_loopback.S
+	$(riscv_gcc_bin) -static -nostdlib -nostartfiles  \
+					 -T $(benchmark_dir)/bsg_rocket_loopback/link.rocket.ld \
+					 $< -o $(benchmark_dir)/bsg_rocket_loopback.riscv
+	$(riscv_elf2hex_bin) 16 8192 $(benchmark_dir)/bsg_rocket_loopback.riscv > $@
+	rm $(benchmark_dir)/bsg_rocket_loopback.riscv
+
+$(benchmark_dir)/bsg_rocket_manycore_2tile_loopback.riscv.hex: \
+		$(benchmark_dir)/bsg_rocket_manycore_2tile_loopback/bsg_rocket_manycore_2tile_loopback.S
+	$(riscv_gcc_bin) -static -nostdlib -nostartfiles  \
+					 -T $(benchmark_dir)/bsg_rocket_manycore_2tile_loopback/link.ld \
+					 $< -o $(benchmark_dir)/bsg_rocket_manycore_2tile_loopback.riscv
+	$(riscv_elf2hex_bin) 16 8192 $(benchmark_dir)/bsg_rocket_manycore_2tile_loopback.riscv > $@
+	rm $(benchmark_dir)/bsg_rocket_manycore_2tile_loopback.riscv
+
+##################################################################################
+##### Regression test for manycore ######
+MC_NAMES	=loopback token_queue chained_core streambuf
+
+mc_regress:
+	@for bmarks in $(MC_NAMES); do \
+		num=`expr $(bsg_rocc_num) - 1`  								; 		\
+		for i in `seq 0  $$num`;  do 							 				\
+			echo "=============================================" 	;			\
+			echo "==   $$bmarks (active fsb node=$$i ) "  	    	;			\
+	    	make clean_bsg_rocket_manycore_$$bmarks 							\
+             			BENCHMARK_0=bsg_rocket_manycore_$$bmarks    				\
+             		   	> /dev/null  2>&1                        ; 				\
+	    	make run_debug BENCHMARK_0=bsg_rocket_manycore_$$bmarks    			\
+                       ROCKET_NAME=coyote_manycore               				\
+					   bsg_active_fsb_index=$$i									\
+                       > run.log  2>&1                        ;					\
+			grep '==>' run.log ;												\
+			rm   run.log ;														\
+		done																  	\
+	done
+
+mc_streambuf:
+	make clean_bsg_rocket_manycore_streambuf 							\
+            	BENCHMARK_0=bsg_rocket_manycore_streambuf    				\
+             	> /dev/null  2>&1                        ; 				
+	make run_debug BENCHMARK_0=bsg_rocket_manycore_streambuf    			\
+               ROCKET_NAME=coyote_manycore_streambuf               	    \
+               2>&1                       ;
+streambuf_check:
+	grep BNN_DATA  out/bsg_rocket_manycore_streambuf.riscv.out | awk '{print $$3}' | sed 's/^0\+//' | sed 's/$$/,/' | sed '$$d' > out/out_fifo_data.txt
+	diff out/out_fifo_data.txt  ../../../../common/benchmark/bsg_rocket_manycore_streambuf/layer1_wts.txt
+
+clean_$(BENCHMARK_0):
+	make -C $(riscv_bmark_dir) clean
+	-make -C $(riscv_bmark_dir) bmarks=$(BENCHMARK_0) clean
+	-rm -rf $(riscv_bmark_dir)/$(BENCHMARK_0)
+	-rm -rf $(manycore_bmark_dir)/$(BENCHMARK_0)
+	-rm -rf $(benchmark_dir)/$(BENCHMARK_0).riscv.hex
+	-rm -rf $(benchmark_dir)/$(BENCHMARK_0)/manycore.vec.c
+	-rm -rf $(benchmark_dir)/$(BENCHMARK_0)/manycore.riscv64
+	-rm -rf $(benchmark_dir)/$(BENCHMARK_0)/manycore.cfg.h
+	-rm -rf $(riscv_bmark_dir)/bsg_rocket_manycore_common
+
+mc_clean:
+	@for bmarks in $(MC_NAMES); do \
+	    make clean_bsg_rocket_manycore_$$bmarks 		\
+             BENCHMARK_0=bsg_rocket_manycore_$$bmarks    	\
+             > /dev/null  2>&1                        ; \
+	done

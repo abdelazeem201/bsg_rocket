@@ -1,0 +1,17 @@
+`ifndef CONST_VH
+`define CONST_VH
+`define HTIF_WIDTH 16
+`define MEM_DATA_BITS 64
+`define CACHE_BLOCK_BYTES 64
+`define MEM_STRB_BITS 8
+`define MEM_ADDR_BITS 32
+`define MEM_SIZE 1073741824
+`define MIF_DATA_BITS 64
+`define MEM_ID_BITS 6
+`define MEMORY_CHANNEL_MUX_CONFIGS__0 1
+`define MIF_TAG_BITS 6
+`define MIF_ADDR_BITS 26
+`define MEMORY_CHANNEL_MUX_CONFIGS__COUNT 1
+`define N_MEM_CHANNELS 1
+`define TBVFRAG "Top.Bsg1AccelVLSIConfig.tb.vfrag"
+`endif // CONST_VH
