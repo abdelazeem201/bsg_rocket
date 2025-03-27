@@ -1,0 +1,28 @@
+Default build:
+==============
+
+1. git clone bsg_designs, bsg_ip_cores, bsg_riscv, bsg_packaging
+2. Go to bsg_riscv
+3. Run make checkout-all
+4. make $(ANIMAL), where $(ANIMAL) can be alpaca, bison, or coyote
+5. copy the necessary files from rocket-chip/vsim/generated-src to bsg_rocket/$(ANIMAL)/generated-src, including:
+    5.1 const.$(CONFIG).vh
+    5.2 Top.$(CONFIG).conf
+    5.3 Top.$(CONFIG).prm
+    5.4 Top.$(CONFIG).scr_map.h
+    5.5 Top.$(CONFIG).tb.vfrag
+    5.6 Top.$(CONFIG).v
+6. Go to bsg_rocket/$(ANIMAL)/testing/rtl
+7. make run BENCHMARK=towers
+
+Incremental build (only if you are modifying/debugging chisel):
+===============================================================
+
+1. After running "Default build"
+2. Add your necessary changes to bsg_riscv/patches
+3. Add a Makefile-rule to apply/revert those patches in bsg_riscv/Makefile, where:
+    3.1 default-patch is for apply patches
+    3.2 clean-default-patch is for revert patches
+4. make clean-default-patch
+5. make default-patch
+6. Run 4-5 from "Default build"
