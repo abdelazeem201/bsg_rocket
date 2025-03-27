@@ -1,0 +1,1 @@
+grep -Ev "^Error:" run.log | grep -Ev "^X'ing matched read address" | grep -Ev "^[[:space:]]*Offending"  | grep -Ev "^.*Attempt to read and write same address" | grep -Ev "^.*started at [[:digit:]]+ps failed at [[:digit:]]+ps" | less
