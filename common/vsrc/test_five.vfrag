@@ -1,0 +1,108 @@
+`define PLI_DELAY 0.1
+
+  logic [num_rockets_gp-1:0] r2h_valid;
+  logic    [`HTIF_WIDTH-1:0] r2h_data [num_rockets_gp-1:0];
+  logic [num_rockets_gp-1:0] r2h_ready;
+
+  logic [num_rockets_gp-1:0] h2r_valid;
+  logic    [`HTIF_WIDTH-1:0] h2r_data [num_rockets_gp-1:0];
+  logic [num_rockets_gp-1:0] h2r_ready;
+
+  wire [num_rockets_gp-1:0] h2r_valid_d;
+  wire    [`HTIF_WIDTH-1:0] h2r_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] h2r_ready_d;
+
+  wire [num_rockets_gp-1:0] r2h_valid_d;
+  wire    [`HTIF_WIDTH-1:0] r2h_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] r2h_ready_d;
+
+  // PLI goes funky with input-verilog-structs
+
+  wire  [num_rockets_gp-1:0] nasti_aw_valid;
+  wire  [`MEM_ADDR_BITS-1:0] nasti_aw_data_addr [num_rockets_gp-1:0];
+  wire    [`MEM_ID_BITS-1:0] nasti_aw_data_id   [num_rockets_gp-1:0];
+  wire                 [2:0] nasti_aw_data_size [num_rockets_gp-1:0];
+  wire                 [7:0] nasti_aw_data_len  [num_rockets_gp-1:0];
+  logic [num_rockets_gp-1:0] nasti_aw_ready;
+
+  wire [num_rockets_gp-1:0] nasti_aw_valid_d;
+            bsg_nasti_a_pkt nasti_aw_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] nasti_aw_ready_d;
+
+  wire  [num_rockets_gp-1:0] nasti_w_valid;
+  wire  [`MEM_STRB_BITS-1:0] nasti_w_data_strb [num_rockets_gp-1:0];
+  wire  [`MEM_DATA_BITS-1:0] nasti_w_data_data [num_rockets_gp-1:0];
+  wire  [num_rockets_gp-1:0] nasti_w_data_last;
+  logic [num_rockets_gp-1:0] nasti_w_ready;
+
+  wire [num_rockets_gp-1:0] nasti_w_valid_d;
+            bsg_nasti_w_pkt nasti_w_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] nasti_w_ready_d;
+
+  logic [num_rockets_gp-1:0] nasti_b_valid;
+             bsg_nasti_b_pkt nasti_b_data [num_rockets_gp-1:0];
+  wire  [num_rockets_gp-1:0] nasti_b_ready;
+
+  wire [num_rockets_gp-1:0] nasti_b_valid_d;
+            bsg_nasti_b_pkt nasti_b_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] nasti_b_ready_d;
+
+  wire  [num_rockets_gp-1:0] nasti_ar_valid;
+  wire  [`MEM_ADDR_BITS-1:0] nasti_ar_data_addr [num_rockets_gp-1:0];
+  wire    [`MEM_ID_BITS-1:0] nasti_ar_data_id [num_rockets_gp-1:0];
+  wire                 [2:0] nasti_ar_data_size [num_rockets_gp-1:0];
+  wire                 [7:0] nasti_ar_data_len [num_rockets_gp-1:0];
+  logic [num_rockets_gp-1:0] nasti_ar_ready;
+
+  wire [num_rockets_gp-1:0] nasti_ar_valid_d;
+            bsg_nasti_a_pkt nasti_ar_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] nasti_ar_ready_d;
+
+  logic [num_rockets_gp-1:0] nasti_r_valid;
+             bsg_nasti_r_pkt nasti_r_data [num_rockets_gp-1:0];
+  wire  [num_rockets_gp-1:0] nasti_r_ready;
+
+  wire [num_rockets_gp-1:0] nasti_r_valid_d;
+            bsg_nasti_r_pkt nasti_r_data_d [num_rockets_gp-1:0];
+  wire [num_rockets_gp-1:0] nasti_r_ready_d;
+
+  genvar i;
+  for (i = 0; i < num_rockets_gp; i++) begin
+
+    assign #`PLI_DELAY r2h_valid[i]   = r2h_valid_d[i];
+    assign #`PLI_DELAY r2h_data[i]    = r2h_data_d[i];
+    assign #`PLI_DELAY r2h_ready_d[i] = r2h_ready[i];
+
+    assign #`PLI_DELAY h2r_valid_d[i] = h2r_valid[i];
+    assign #`PLI_DELAY h2r_data_d[i]  = h2r_data[i];
+    assign #`PLI_DELAY h2r_ready[i]   = h2r_ready_d[i];
+
+    assign #`PLI_DELAY nasti_aw_valid[i]     = nasti_aw_valid_d[i];
+    assign #`PLI_DELAY nasti_aw_data_addr[i] = nasti_aw_data_d[i].addr;
+    assign #`PLI_DELAY nasti_aw_data_id[i]   = nasti_aw_data_d[i].id;
+    assign #`PLI_DELAY nasti_aw_data_size[i] = nasti_aw_data_d[i].size;
+    assign #`PLI_DELAY nasti_aw_data_len[i]  = nasti_aw_data_d[i].len;
+    assign #`PLI_DELAY nasti_aw_ready_d[i]   = nasti_aw_ready[i];
+
+    assign #`PLI_DELAY nasti_w_valid[i]     = nasti_w_valid_d[i];
+    assign #`PLI_DELAY nasti_w_data_strb[i] = nasti_w_data_d[i].strb;
+    assign #`PLI_DELAY nasti_w_data_data[i] = nasti_w_data_d[i].data;
+    assign #`PLI_DELAY nasti_w_data_last[i] = nasti_w_data_d[i].last;
+    assign #`PLI_DELAY nasti_w_ready_d[i]   = nasti_w_ready[i];
+
+    assign #`PLI_DELAY nasti_b_valid_d[i] = nasti_b_valid[i];
+    assign #`PLI_DELAY nasti_b_data_d[i]  = nasti_b_data[i];
+    assign #`PLI_DELAY nasti_b_ready[i]   = nasti_b_ready_d[i];
+
+    assign #`PLI_DELAY nasti_ar_valid[i]     = nasti_ar_valid_d[i];
+    assign #`PLI_DELAY nasti_ar_data_addr[i] = nasti_ar_data_d[i].addr;
+    assign #`PLI_DELAY nasti_ar_data_id[i]   = nasti_ar_data_d[i].id;
+    assign #`PLI_DELAY nasti_ar_data_size[i] = nasti_ar_data_d[i].size;
+    assign #`PLI_DELAY nasti_ar_data_len[i]  = nasti_ar_data_d[i].len;
+    assign #`PLI_DELAY nasti_ar_ready_d[i]   = nasti_ar_ready[i];
+
+    assign #`PLI_DELAY nasti_r_valid_d[i] = nasti_r_valid[i];
+    assign #`PLI_DELAY nasti_r_data_d[i]  = nasti_r_data[i];
+    assign #`PLI_DELAY nasti_r_ready[i]   = nasti_r_ready_d[i];
+
+  end

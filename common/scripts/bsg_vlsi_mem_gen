@@ -1,0 +1,152 @@
+#! /usr/bin/env python
+
+# See LICENSE for license details.
+
+import sys
+import math
+
+bsg_sram_map = {'mwriteread': 'bsg_mem_1r1w_sync_mask_write_bit'
+               ,'rw'        : 'bsg_mem_1rw_sync'
+               ,'mrw'       : 'bsg_mem_1rw_sync_mask_write_bit'}
+
+def parse_line(line):
+  name = ''
+  width = 0
+  depth = 0
+  ports = ''
+  mask_gran = 1
+  tokens = line.split()
+  i = 0
+  for i in range(0,len(tokens),2):
+    s = tokens[i]
+    if s == 'name':
+      name = tokens[i+1]
+    elif s == 'width':
+      width = int(tokens[i+1])
+    elif s == 'depth':
+      depth = int(tokens[i+1])
+    elif s == 'ports':
+      ports = tokens[i+1].split(',')
+    elif s == 'mask_gran':
+      # currently used only for fpga, but here for .conf format compatability
+      mask_gran = int(tokens[i+1])
+    else:
+      sys.exit('%s: unknown argument %s' % (sys.argv[0], a))
+  return (name, width, depth, ports)
+
+def gen_mem(name, width, depth, ports):
+  addr_width = max(math.ceil(math.log(depth)/math.log(2)),1)
+  port_spec = ['input CLK', 'input RST', 'input init']
+  readports = []
+  writeports = []
+  latchports = []
+  rwports = []
+  decl = []
+  combinational = []
+  sequential = []
+  maskedports = {}
+
+  if len(ports) > 2:
+      sys.exit('bsg sram support for these types only %s' % (bsg_sram_map))
+
+  for pid in range(len(ports)):
+    ptype = ports[pid]
+    if ptype[0:1] == 'm':
+      ptype = ptype[1:]
+      maskedports[pid] = pid
+
+    if ptype == 'read':
+      port_spec.append('input [%d:0] R%dA' % (addr_width-1, pid))
+      port_spec.append('input R%dE' % pid)
+      port_spec.append('output [%d:0] R%dO' % (width-1, pid))
+    elif ptype == 'write':
+      port_spec.append('input [%d:0] W%dA' % (addr_width-1, pid))
+      port_spec.append('input W%dE' % pid)
+      port_spec.append('input [%d:0] W%dI' % (width-1, pid))
+      if pid in maskedports:
+        port_spec.append('input [%d:0] W%dM' % (width-1, pid))
+    elif ptype == 'rw':
+      port_spec.append('input [%d:0] RW%dA' % (addr_width-1, pid))
+      port_spec.append('input RW%dE' % pid)
+      port_spec.append('input RW%dW' % pid)
+      if pid in maskedports:
+        port_spec.append('input [%d:0] RW%dM' % (width-1, pid))
+      port_spec.append('input [%d:0] RW%dI' % (width-1, pid))
+      port_spec.append('output [%d:0] RW%dO' % (width-1, pid))
+    else:
+      sys.exit('%s: unknown port type %s' % (sys.argv[0], ptype))
+
+  bsg_type = ''.join(ports)
+
+  # read_write_same_addr_p is set to zero because the rocket core
+  # is not supposed to require rams that behave correctly when
+  # an address is read and written at the same time, and the
+  # hard macros do not support this behavior.
+  # setting this to zero ensures that the output of a read in this
+  # situation is set to 'X, modeling our expectations.
+
+  # the rocket core still does read and write the same address
+  # primarily during boot up. however, it appears to re-perform
+  # the read after such instances. it is expected to see a few
+  # such errors at the beginning before rocket starts executing.
+
+  if bsg_type == 'mwriteread':
+    bsg_sram_inst = "\n "
+    bsg_sram_inst += bsg_sram_map[bsg_type]
+    bsg_sram_inst += "  #\n"
+    bsg_sram_inst += " (.width_p(%s)\n" % (width)
+    bsg_sram_inst += " ,.els_p(%s)\n" % (depth)
+    bsg_sram_inst += " ,.read_write_same_addr_p(0))\n"
+    bsg_sram_inst += " mem\n"
+    bsg_sram_inst += " (.clk_i(CLK)\n"
+    bsg_sram_inst += " ,.reset_i(RST)\n"
+    bsg_sram_inst += " ,.w_v_i(W0E)\n"
+    bsg_sram_inst += " ,.w_mask_i(W0M)\n"
+    bsg_sram_inst += " ,.w_addr_i(W0A)\n"
+    bsg_sram_inst += " ,.w_data_i(W0I)\n"
+    bsg_sram_inst += " ,.r_v_i(R1E)\n"
+    bsg_sram_inst += " ,.r_addr_i(R1A)\n"
+    bsg_sram_inst += " ,.r_data_o(R1O));\n"
+  elif bsg_type == 'mrw':
+    bsg_sram_inst = "\n "
+    bsg_sram_inst = bsg_sram_map[bsg_type]
+    bsg_sram_inst += " #\n"
+    bsg_sram_inst += " (.width_p(%s)\n" % (width)
+    bsg_sram_inst += " ,.els_p(%s))\n" % (depth)
+    bsg_sram_inst += " mem\n"
+    bsg_sram_inst += " (.clk_i(CLK)\n"
+    bsg_sram_inst += " ,.reset_i(RST)\n"
+    bsg_sram_inst += " ,.addr_i(RW0A)\n"
+    bsg_sram_inst += " ,.v_i(RW0E)\n"
+    bsg_sram_inst += " ,.w_mask_i(RW0M)\n"
+    bsg_sram_inst += " ,.w_i(RW0W)\n"
+    bsg_sram_inst += " ,.data_i(RW0I)\n"
+    bsg_sram_inst += " ,.data_o(RW0O));\n"
+  elif bsg_type == 'rw':
+    bsg_sram_inst = "\n "
+    bsg_sram_inst = bsg_sram_map[bsg_type]
+    bsg_sram_inst += " #\n"
+    bsg_sram_inst += " (.width_p(%s)\n" % (width)
+    bsg_sram_inst += " ,.els_p(%s))\n" % (depth)
+    bsg_sram_inst += " mem\n"
+    bsg_sram_inst += " (.clk_i(CLK)\n"
+    bsg_sram_inst += " ,.reset_i(RST)\n"
+    bsg_sram_inst += " ,.addr_i(RW0A)\n"
+    bsg_sram_inst += " ,.v_i(RW0E)\n"
+    bsg_sram_inst += " ,.w_i(RW0W)\n"
+    bsg_sram_inst += " ,.data_i(RW0I)\n"
+    bsg_sram_inst += " ,.data_o(RW0O));\n"
+  else:
+    sys.exit('ERROR: bsg unknown sram type %s' % (bsg_type))
+
+  s = "module %s(\n  %s\n);\n\n%s\nendmodule\n" % (name, ',\n  '.join(port_spec), bsg_sram_inst)
+  return s
+
+def main():
+  if len(sys.argv) < 2:
+    sys.exit('Please give a .conf file as input')
+  for line in open(sys.argv[1]):
+    print(gen_mem(*parse_line(line)))
+
+if __name__ == '__main__':
+  main()
