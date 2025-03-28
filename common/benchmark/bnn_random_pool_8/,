@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Link all common files and updates them. This script is needed as RISC-V's
+# compilation flow does not have a way to link two projects.
+
+for file in ../common/*; do
+
+  ln -sf ${file}
+
+done
+
+for file in ../bnn_common/*; do
+
+  ln -sf ${file}
+
+done
+
+for file in ../bnn_random_conv/*; do
+
+  ln -sf ${file}
+
+done
