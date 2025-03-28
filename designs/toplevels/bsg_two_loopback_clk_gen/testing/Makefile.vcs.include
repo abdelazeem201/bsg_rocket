@@ -1,0 +1,96 @@
+# This file is for setting simulation parameters that are particular to a design
+# Generally speaking, very few things should be set here and they should be
+# specific to the design; for instance CLOCK PERIODS
+
+
+# BSG_TWO_CLK_GEN parameters
+#
+#VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+#VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+#
+
+
+
+# clocking this too fast runs into issues
+# caused by the timescale of the TSMC cells
+# being set to 1 ns
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl_hard)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+VCS_OPTIONS += +define+TIMING_CORNER_max +define+SPEED_4_CHANNELS
+
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+VCS_OPTIONS += +define+TIMING_CORNER_max +define+SPEED_4_CHANNELS
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+VCS_OPTIONS += +define+TIMING_CORNER_max +define+SPEED_4_CHANNELS
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_place_and_route)
+
+# use internal pin rather than external one for observing clock
+VCS_OPTIONS += +define+BSG_CLK_WATCH=bsg_double_trouble_pcb.asic.ASIC.sdi_tkn_ex_o_int_3_
+
+# these correspond to the 5.5 ns core frequency
+# and the 4.0 ns I/O frequency in constraints.tcl
+
+# MIN PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),min)
+VCS_OPTIONS += +define+CORE_0_PERIOD=1600
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=1600
+VCS_OPTIONS += +define+CORE_1_PERIOD=4529
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4529
+endif
+
+
+ifeq ($(strip $(BSG_GATE_LEVEL_MODE)),typ)
+VCS_OPTIONS += +define+CORE_0_PERIOD=2000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=2000
+VCS_OPTIONS += +define+CORE_1_PERIOD=4529
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4529
+endif
+
+
+# MAX PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),max)
+
+## 180 works settings
+
+#2000,2200 works
+VCS_OPTIONS += +define+CORE_0_PERIOD=2000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=2200
+
+#5600,5500 works
+VCS_OPTIONS += +define+CORE_1_PERIOD=5600
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=5500
+
+endif
+endif
+
+
+

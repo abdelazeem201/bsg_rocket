@@ -1,0 +1,33 @@
+Here is the testbench hierarchy for a loopback-style module.
+
+
+bsg_double_trouble_pcb
+\
+|___ bsg_gateway_socket
+|      \__
+|         |___bsg_gateway_chip
+|                \__
+|                   |___bsg_nonsynth_clock_gen
+|                   |___bsg_nonsynth_clock_gen
+|                   |___bsg_nonsynth_reset_gen
+|                   |___bsg_guts (#(master_p=1)
+|                        \_
+|                          |___bsg_comm_link
+|                          |
+|                           \__bsg_test_node_master
+|                              \_
+|                                |
+|                                 \ individual testbench code for a particular bsg_design
+|
+\___ bsg_asic_socket
+       \__
+          |___bsg_chip (THIS MODULE AND BELOW IS SYNTHESIZED)
+                 \__
+                    |___bsg_guts #(master_p=0)
+                        \_
+                         |___bsg_comm_link
+                         |
+                         \___bsg_test_node_client
+                             \_
+                               |
+                                \ FSB node for ASIC
