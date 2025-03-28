@@ -1,0 +1,115 @@
+#------------------------------------------------------------
+# Do NOT arbitrarily change the order of files. Some module
+# and macro definitions may be needed by the subsequent files
+#------------------------------------------------------------
+
+set bsg_ip_cores_dir $::env(BSG_IP_CORES_DIR)
+set bsg_manycore_dir $::env(BSG_MANYCORE_DIR)
+set bsg_designs_dir $::env(BSG_DESIGNS_DIR)
+
+set BSG_MANYCORE_SOURCE_LIST [join "
+ $bsg_ip_cores_dir/bsg_misc/bsg_transpose.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_crossbar_o_by_i.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_cycle_counter.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_round_robin_arb.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_arb_fixed.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_priority_encode.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_priority_encode_one_hot_out.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_mux_one_hot.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_encode_one_hot.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_scan.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_counter_up_down.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_circular_ptr.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_counter_up_down_variable.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_round_robin_n_to_1.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_1_to_n_tagged_fifo.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_1_to_n_tagged.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_counter_clear_up.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_channel_tunnel.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_channel_tunnel_in.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_channel_tunnel_out.v
+ $bsg_ip_cores_dir/bsg_mem/bsg_mem_2r1w.v
+ $bsg_ip_cores_dir/bsg_mem/bsg_mem_1r1w.v
+ $bsg_ip_cores_dir/bsg_mem/bsg_mem_banked_crossbar.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_fifo_tracker.v
+ $bsg_ip_cores_dir/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
+ $bsg_ip_cores_dir/bsg_mem/bsg_mem_1rw_sync.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_fifo_1r1w_small.v
+ $bsg_ip_cores_dir/bsg_dataflow/bsg_two_fifo.v
+ $bsg_ip_cores_dir/bsg_noc/bsg_noc_pkg.v
+ $bsg_ip_cores_dir/bsg_noc/bsg_noc_links.vh
+ $bsg_ip_cores_dir/bsg_noc/bsg_mesh_router.v
+ $bsg_ip_cores_dir/bsg_noc/bsg_mesh_stitch.v
+ $bsg_ip_cores_dir/bsg_noc/bsg_mesh_to_ring_stitch.v
+ $bsg_ip_cores_dir/bsg_noc/bsg_mesh_router_buffered.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_decode_with_v.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_decode.v
+ $bsg_ip_cores_dir/bsg_misc/bsg_dff_reset_en.v
+ $bsg_manycore_dir/v/vscale/vscale_pipeline.v
+ $bsg_manycore_dir/v/vscale/vscale_ctrl.v
+ $bsg_manycore_dir/v/vscale/vscale_regfile.v
+ $bsg_manycore_dir/v/vscale/bsg_manycore_proc_vscale.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_ctrl_constants.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/rv32_opcodes.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_alu_ops.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_md_constants.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_hasti_constants.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_csr_addr_map.vh
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_src_a_mux.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_src_b_mux.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_imm_gen.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_alu.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_mul_div.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_csr_file.v
+ $bsg_manycore_dir/imports/vscale/src/main/verilog/vscale_PC_mux.v
+ $bsg_manycore_dir/v/bsg_vscale_pkg.v
+ $bsg_manycore_dir/v/bsg_vscale_core.v
+ $bsg_manycore_dir/v/bsg_manycore_hetero_socket.v
+ $bsg_manycore_dir/v/bsg_manycore_tile.v
+ $bsg_manycore_dir/v/bsg_manycore_mesh.v
+ $bsg_manycore_dir/v/bsg_manycore_mesh_node.v
+ $bsg_manycore_dir/v/bsg_manycore_links_to_fsb.v
+ $bsg_manycore_dir/v/bsg_manycore.v
+ $bsg_manycore_dir/v/bsg_manycore_pkt_encode.v
+ $bsg_manycore_dir/v/bsg_manycore_pkt_decode.v
+ $bsg_manycore_dir/v/bsg_manycore_endpoint.v
+ $bsg_manycore_dir/v/bsg_manycore_endpoint_standard.v
+ $bsg_manycore_dir/v/bsg_manycore_link_sif_tieoff.v
+ $bsg_manycore_dir/v/bsg_manycore_accel_default.v
+"]
+
+set SVERILOG_SOURCE_FILES [join "
+  $bsg_ip_cores_dir/bsg_misc/bsg_defines.v
+  $bsg_ip_cores_dir/bsg_fsb/bsg_fsb_pkg.v
+  $bsg_designs_dir/toplevels/bsg_two_manycore/v/bsg_chip_pkg.v
+  $BSG_MANYCORE_SOURCE_LIST
+  $bsg_ip_cores_dir/bsg_misc/bsg_tiehi.v
+  $bsg_ip_cores_dir/bsg_misc/bsg_tielo.v
+  $bsg_ip_cores_dir/bsg_misc/bsg_thermometer_count.v
+  $bsg_ip_cores_dir/bsg_misc/bsg_popcount.v
+  $bsg_ip_cores_dir/bsg_misc/bsg_gray_to_binary.v
+  $bsg_ip_cores_dir/bsg_misc/bsg_binary_plus_one_to_gray.v
+  $bsg_ip_cores_dir/bsg_async/bsg_async_credit_counter.v
+  $bsg_ip_cores_dir/bsg_async/bsg_async_fifo.v
+  $bsg_ip_cores_dir/bsg_async/bsg_async_ptr_gray.v
+  $bsg_ip_cores_dir/bsg_async/bsg_launch_sync_sync.v
+  $bsg_ip_cores_dir/bsg_async/bsg_sync_sync.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_assembler_in.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_assembler_out.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_comm_link.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_source_sync_channel_control_slave.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_source_sync_input.v
+  $bsg_ip_cores_dir/bsg_comm_link/bsg_source_sync_output.v
+  $bsg_ip_cores_dir/bsg_dataflow/bsg_flatten_2D_array.v
+  $bsg_ip_cores_dir/bsg_dataflow/bsg_make_2D_array.v
+  $bsg_ip_cores_dir/bsg_dataflow/bsg_round_robin_fifo_to_fifo.v
+  $bsg_ip_cores_dir/bsg_dataflow/bsg_sbox.v
+  $bsg_ip_cores_dir/bsg_dataflow/bsg_scatter_gather.v
+  $bsg_ip_cores_dir/bsg_fsb/bsg_fsb_murn_gateway.v
+  $bsg_ip_cores_dir/bsg_fsb/bsg_front_side_bus_hop_in.v
+  $bsg_ip_cores_dir/bsg_fsb/bsg_front_side_bus_hop_out.v
+  $bsg_ip_cores_dir/bsg_fsb/bsg_fsb.v
+  $bsg_designs_dir/modules/bsg_guts/bsg_guts.v
+  $bsg_designs_dir/toplevels/bsg_two_manycore/v/bsg_chip.v
+  $bsg_designs_dir/toplevels/bsg_two_manycore/v/bsg_test_node_client.v
+"]

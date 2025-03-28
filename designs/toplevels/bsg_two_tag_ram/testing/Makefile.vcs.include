@@ -1,0 +1,78 @@
+# This file is for setting simulation parameters that are particular to a design
+# Generally speaking, very few things should be set here and they should be
+# specific to the design; for instance CLOCK PERIODS
+
+# BSG_TWO_CLK_GEN parameters
+#
+#VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+#VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+
+# clocking this too fast runs into issues
+# caused by the timescale of the TSMC cells
+# being set to 1 ns
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl_hard)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+
+# min=max for now
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+
+# MIN PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),min)
+endif
+
+# MAX PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),max)
+endif
+
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_place_and_route)
+
+# min=max for now
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+
+# MIN PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),min)
+endif
+
+# MAX PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),max)
+endif
+
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),spice_gate_level)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),spice_transistor_level)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+endif

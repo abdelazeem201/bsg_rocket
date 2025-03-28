@@ -1,0 +1,83 @@
+# This file is for setting simulation parameters that are particular to a design
+# Generally speaking, very few things should be set here and they should be
+# specific to the design; for instance CLOCK PERIODS
+
+
+# BSG_TWO_CLK_GEN parameters
+#
+#VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+#VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+#
+
+
+# clocking this too fast runs into issues
+# caused by the timescale of the TSMC cells
+# being set to 1 ns
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl_hard)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+VCS_OPTIONS += +define+bsg_VANILLA
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_place_and_route)
+# these correspond to the 5.5 ns core frequency
+# and the 4.0 ns I/O frequency in constraints.tcl
+
+# MIN PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),min)
+VCS_OPTIONS += +define+CORE_0_PERIOD=5550
+VCS_OPTIONS += +define+CORE_1_PERIOD=5550
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4529
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4529
+# does not work  FIXME figure out why
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4528
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4528
+endif
+
+# MAX PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),max)
+VCS_OPTIONS += +define+CORE_0_PERIOD=5550
+VCS_OPTIONS += +define+CORE_1_PERIOD=5550
+
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4575
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4575
+
+#doesn't work
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4560
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4560
+endif
+
+endif
+
+#GENERATE_ME_FILES=bsg_fsb_master_rom.v
+
+
+

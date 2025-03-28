@@ -1,0 +1,20 @@
+#------------------------------------------------------------
+# This file define all the relative path variables for the
+# filelist.tcl, you could use it as it is or reference for
+# your project
+#------------------------------------------------------------
+
+ifndef BSG_TOP_DIR
+$(error BSG_TOP_DIR must be defined; it should be a single directory that contains bsg_ip_cores, bsg_designs, bsg_packaging,etc)
+endif
+
+export BSG_IP_CORES_DIR:=$(BSG_TOP_DIR)/bsg_ip_cores
+export BSG_DESIGNS_DIR:=$(BSG_TOP_DIR)/bsg_designs
+export BSG_PACKAGING_DIR:=$(BSG_TOP_DIR)/bsg_packaging
+export BSG_MANYCORE_DIR:=$(BSG_TOP_DIR)/bsg_manycore
+
+$(warning $(pwd))
+$(warning BSG_PACKAGING_DIR=$(BSG_PACKAGING_DIR))
+$(warning BSG_IP_CORES_DIR=$(BSG_IP_CORES_DIR))
+$(warning BSG_DESIGNS_DIR=$(BSG_DESIGNS_DIR))
+$(warning BSG_MANYCORE_DIR=$(BSG_MANYCORE_DIR))

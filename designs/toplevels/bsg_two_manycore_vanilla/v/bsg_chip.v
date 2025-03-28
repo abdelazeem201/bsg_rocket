@@ -1,0 +1,92 @@
+`include "bsg_padmapping.v"
+
+`include "bsg_iopad_macros.v"
+
+module bsg_chip
+
+// pull in BSG Two's top-level module signature, and the definition of the pads
+`include "bsg_pinout.v"
+
+`include "bsg_iopads.v"
+
+  // MBT: copied directly from bsg_two_loopback_clk_gen
+  // as a reminder that these must now be set by bsg_two 
+  // pinouts.
+ 
+   // disable sdi_tkn_ex_o[0..2]
+   `BSG_IO_TIEHI_VEC(sdi_tkn_ex_oen_int,3)
+
+   // enable sdi_tkn_ex[3] (this pin is used for clock inspection)
+   `BSG_IO_TIELO_VEC_ONE(sdi_tkn_ex_oen_int,3)
+
+   // disable sdo_sclk_ex[0..3]
+   `BSG_IO_TIEHI_VEC(sdo_sclk_ex_oen_int,4)
+
+   // disable misc_L_3_o
+   `BSG_IO_TIEHI(misc_L_3_oen_int)
+
+   // disable misc_R_3_o
+   `BSG_IO_TIEHI(misc_R_3_oen_int)
+
+   // disable sdo_A_data_8_o
+   `BSG_IO_TIEHI(sdo_A_data_8_oen_int)
+
+   // disable sdo_C_data_8_o
+   `BSG_IO_TIEHI(sdo_C_data_8_oen_int)
+
+   `BSG_IO_TIEHI(JTAG_TDO_oen_int)
+
+// **********************************************************************
+// BEGIN BSG GUTS
+//
+// Put this last because the previous lines define the wires that are inputs.
+//
+//
+   wire [7:0] sdi_data_i_int_packed [3:0];
+   wire [7:0] sdo_data_o_int_packed [3:0];
+
+   // we swap B input and C input to make physical design easier
+   bsg_make_2D_array #(.width_p(8),.items_p(4)) m2da
+     (.i({sdi_D_data_i_int, sdi_B_data_i_int, sdi_C_data_i_int, sdi_A_data_i_int})
+       ,.o(sdi_data_i_int_packed)
+       );
+
+   bsg_flatten_2D_array #(.width_p(8),.items_p(4)) f2da
+     (.i(sdo_data_o_int_packed)
+       ,.o({sdo_D_data_o_int, sdo_C_data_o_int, sdo_B_data_o_int, sdo_A_data_o_int})
+       );
+
+`define BSG_SWIZZLE_3120(a) { a[3],a[1],a[2],a[0] }
+
+   bsg_guts #(.uniqueness_p(1)
+              ,.enabled_at_start_vec_p(1'b1)
+              ) g
+     (.core_clk_i             (misc_L_4_i_int)
+       ,.async_reset_i        (reset_i_int    )
+       ,.io_master_clk_i      (PLL_CLK_i_int  )
+      // flip B and C input for PD
+       ,.io_clk_tline_i       ( `BSG_SWIZZLE_3120(sdi_sclk_i_int)  )
+       ,.io_valid_tline_i     ( `BSG_SWIZZLE_3120(sdi_ncmd_i_int)  )
+       ,.io_data_tline_i      (sdi_data_i_int_packed)
+       ,.io_token_clk_tline_o ( `BSG_SWIZZLE_3120(sdi_token_o_int) )
+       ,.im_clk_tline_o       (sdo_sclk_o_int )
+       ,.im_valid_tline_o     (sdo_ncmd_o_int )
+       ,.im_data_tline_o      (sdo_data_o_int_packed)
+       ,.token_clk_tline_i    (sdo_token_i_int)
+       ,.im_slave_reset_tline_r_o()             // unused by ASIC
+       ,.core_reset_o            ()             // post calibration reset
+       );
+
+
+
+   // to play well with the multivoltage flow; we need a cell
+   // instantiated in that voltage domain
+
+   bsg_clkbuf #(.width_p(1)
+                ,.harden_p(1)
+                ) clk_gen_0_inst
+     (.i(misc_L_4_i_int)
+      ,.o()
+      );
+
+`include "bsg_pinout_end.v"

@@ -1,0 +1,143 @@
+# This file is for setting simulation parameters that are particular to a design
+# Generally speaking, very few things should be set here and they should be
+# specific to the design; for instance CLOCK PERIODS
+
+
+# BSG_TWO_CLK_GEN parameters
+#
+#VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+#VCS_OPTIONS += +define+CORE_1_PERIOD=10001
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=10002
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=10003
+#
+
+
+# clocking this too fast runs into issues
+# caused by the timescale of the TSMC cells
+# being set to 1 ns
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl_hard)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),rtl)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+VCS_OPTIONS += +define+bsg_VANILLA
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_synth)
+VCS_OPTIONS += +define+CORE_0_PERIOD=10000
+VCS_OPTIONS += +define+CORE_1_PERIOD=10000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=9500
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=9500
+endif
+
+ifeq ($(BSG_VCS_RUN_TYPE),post_place_and_route)
+# these correspond to the 5.5 ns core frequency
+# and the 4.0 ns I/O frequency in constraints.tcl
+
+# MIN PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),min)
+VCS_OPTIONS += +define+CORE_0_PERIOD=6000
+VCS_OPTIONS += +define+CORE_1_PERIOD=6000
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=6000
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=6000
+# does not work  FIXME figure out why
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4528
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4528
+endif
+
+# MAX PARAMETERS
+ifeq ($(BSG_GATE_LEVEL_MODE),max)
+VCS_OPTIONS += +define+CORE_0_PERIOD=6000
+VCS_OPTIONS += +define+CORE_1_PERIOD=6000
+
+VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=6000
+VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=6000
+
+#doesn't work
+#VCS_OPTIONS += +define+IO_MASTER_0_PERIOD=4560
+#VCS_OPTIONS += +define+IO_MASTER_1_PERIOD=4560
+endif
+
+endif
+
+###########################################################
+#  Select the test mode
+VCS_OPTIONS += +incdir+$(BSG_DESIGNS_TARGET_DIR)/testing
+
+ifdef TEST_BSG_CLK_GEN
+VCS_OPTIONS += +define+TEST_BSG_CLK_GEN=1
+endif
+
+#GENERATE_ME_FILES=bsg_fsb_master_rom.v
+##############################################
+# code snippet to update the roms for test
+test_case_list =hello
+test_case_list+=bsg_token_queue
+test_case_list+=bsg_fence
+test_case_list+=bsg_lr_acq
+test_case_list+=bsg_chained_core
+test_case_list+=bsg_outbuf_full
+test_case_list+=mul_div
+test_case_list+=bypass_core
+
+ifdef UPDATE_ROMS
+test_rom_list=$(addsuffix _tmp_rom, $(test_case_list))
+test_spmd_dir=$(BSG_MANYCORE_DIR)/software/spmd/
+test_rom_name=bsg_manycore_io_complex_rom.v
+test_rom_file=$(BSG_DESIGNS_TARGET_DIR)/testing/$(test_rom_name)
+%_tmp_rom:
+	make -C $(test_spmd_dir)/$(subst _tmp_rom,,$@) $(test_rom_name)  > /dev/null
+	echo "\`ifdef test_$(subst _tmp_rom,,$@)" >> $(test_rom_file)
+	cat  $(test_spmd_dir)/$(subst _tmp_rom,,$@)/$(test_rom_name) >> $(test_rom_file)
+	echo "\`endif" >> $(test_rom_file)
+	make -C $(test_spmd_dir)/$(subst _tmp_rom,,$@) clean > /dev/null
+#######################################
+%_clean_rom:
+	rm -rf $(test_rom_file)
+
+test_rom_gen:rtl_hard_clean_rom $(test_rom_list)
+endif
+
+# typing make foo.check will strip out the sum codes
+%.check:
+	grep 'data ' run..log | awk '{print $$9}' | cut -b4-9 > $@
+
+##############################################
+#  select the testcase to run
+TEST_CASE=bsg_token_queue
+
+ifneq ($(filter $(TEST_CASE),$(test_case_list)),)
+VCS_OPTIONS += +define+test_$(TEST_CASE)
+else
+$(error TEST_CASE should be one of : $(test_case_list))
+endif
+
+##############################################
+#  regression test
+%.regress_test:
+	@echo "====================================================================="
+	@echo "Updating ROMs... "
+	@make UPDATE_ROMS=1 &> /dev/null
+	@for testcase in $(test_case_list) ; do \
+	echo "=====================================================================";\
+	echo "running testcase [ $$testcase ]                ";\
+	make TEST_CASE=$$testcase  &>/dev/null;     					\
+	grep " FINISH \| data "  run..log;    					\
+	done;
